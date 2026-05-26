@@ -119,7 +119,7 @@ def list_data_files():
 
 def filter_allowed_columns(df):
     ALLOWED_COLS = [
-        'task', 'round', 'train_loss', 'test_loss', 'accuracy', 
+        'task', 'task_id', 'round', 'round_id', 'train_loss', 'test_loss', 'accuracy', 
         'precision_macro', 'recall_macro', 'recall_marco', 
         'f1_macro', 'f1_marco', 'f1_weighted', 'f1_weight'
     ]
@@ -413,13 +413,13 @@ with tab_summary:
                 if temp_df.empty:
                     continue
                 
-                # Check if 'round' and 'task' columns exist (case-insensitive check)
+                # Check if 'round'/'round_id' and 'task'/'task_id' columns exist (case-insensitive check)
                 round_col = None
                 task_col = None
                 for col in temp_df.columns:
-                    if str(col).lower() == 'round':
+                    if str(col).lower() in ['round', 'round_id']:
                         round_col = col
-                    elif str(col).lower() == 'task':
+                    elif str(col).lower() in ['task', 'task_id']:
                         task_col = col
                 
                 if round_col is not None:
@@ -460,8 +460,8 @@ with tab_summary:
         if summary_rows:
             combined_summary_df = pd.concat(summary_rows, ignore_index=True)
             
-            # Remove 'round' column from summary table
-            round_cols = [col for col in combined_summary_df.columns if str(col).lower() == 'round']
+            # Remove 'round'/'round_id' column from summary table
+            round_cols = [col for col in combined_summary_df.columns if str(col).lower() in ['round', 'round_id']]
             if round_cols:
                 combined_summary_df = combined_summary_df.drop(columns=round_cols)
             
@@ -508,9 +508,9 @@ with tab_summary:
                 
             # Visualization for round 19 across files
             numeric_cols = combined_summary_df.select_dtypes(include=['number']).columns.tolist()
-            # Remove keys like round/task from choices
+            # Remove keys like round/round_id/task/task_id from choices
             for col in list(numeric_cols):
-                if str(col).lower() in ['round', 'task']:
+                if str(col).lower() in ['round', 'round_id', 'task', 'task_id']:
                     numeric_cols.remove(col)
                     
             if len(numeric_cols) > 0:
@@ -524,10 +524,10 @@ with tab_summary:
                 
                 chart_df = combined_summary_df.copy()
                 
-                # Check for task column
+                # Check for task / task_id column
                 task_col = None
                 for col in chart_df.columns:
-                    if str(col).lower() == 'task':
+                    if str(col).lower() in ['task', 'task_id']:
                         task_col = col
                         break
                 
