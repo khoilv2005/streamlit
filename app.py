@@ -117,6 +117,23 @@ def list_data_files():
     files.sort(key=lambda x: os.path.getmtime(os.path.join(DATA_DIR, x)), reverse=True)
     return files
 
+def clean_numeric_value(val):
+    if pd.isna(val):
+        return val
+    if isinstance(val, (int, float)):
+        return val
+    val_str = str(val).strip()
+    if not val_str:
+        return None
+    # If there are multiple dots, e.g. "3.673.841", keep only the first one
+    if val_str.count('.') > 1:
+        parts = val_str.split('.')
+        val_str = parts[0] + '.' + ''.join(parts[1:])
+    try:
+        return float(val_str)
+    except ValueError:
+        return val
+
 def filter_allowed_columns(df):
     # Rename columns to their canonical names if they exist case-insensitively
     # We consolidate 'task' -> 'task_id', and 'round' -> 'round_id'
@@ -167,7 +184,20 @@ def filter_allowed_columns(df):
                     cols_to_keep.append(col)
                 break
     if cols_to_keep:
-        return df[cols_to_keep]
+        df = df[cols_to_keep].copy()
+        
+    # Clean numeric values and format types
+    if 'task_id' in df.columns:
+        df['task_id'] = pd.to_numeric(df['task_id'], errors='coerce')
+    if 'round_id' in df.columns:
+        df['round_id'] = pd.to_numeric(df['round_id'], errors='coerce')
+        
+    for col in df.columns:
+        if col not in ['task_id', 'round_id']:
+            df[col] = df[col].apply(clean_numeric_value)
+            if df[col].dtype == 'object':
+                df[col] = pd.to_numeric(df[col], errors='coerce')
+                
     return df
 
 def save_data_file(file_name, data):
@@ -192,7 +222,7 @@ def load_data_file(file_name):
         return pd.DataFrame()
     
     if file_name.endswith(".csv"):
-        df = pd.read_csv(file_path)
+        df = pd.read_csv(file_path, sep=None, engine='python')
     else:
         # JSON
         with open(file_path, "r", encoding="utf-8") as f:
@@ -241,7 +271,7 @@ with st.sidebar:
                 file_data = json.load(uploaded_file)
                 save_data_file(file_name, file_data)
             elif file_name.endswith(".csv"):
-                file_df = pd.read_csv(uploaded_file)
+                file_df = pd.read_csv(uploaded_file, sep=None, engine='python')
                 save_data_file(file_name, file_df)
                 
             st.success(f"Đã lưu file: {file_name}")
