@@ -393,39 +393,57 @@ with tab_detail:
             st.markdown("---")
 
             # 4. Data Visualization / Charts
-            numeric_cols = edited_df.select_dtypes(include=['number']).columns.tolist()
+            plot_df = edited_df.copy()
             
-            if len(numeric_cols) > 0:
+            # Identify columns that are metrics (excluding task_id and round_id)
+            metric_cols = [c for c in plot_df.columns if c not in ['task_id', 'round_id']]
+            
+            if len(metric_cols) > 0:
                 st.markdown("#### 📈 Phân Tích & Vẽ Biểu Đồ Tự Động")
                 
-                # Select axes
-                col_v1, col_v2 = st.columns(2)
-                all_cols = edited_df.columns.tolist()
-                with col_v1:
-                    x_axis = st.selectbox("Chọn trục X (Ngang)", options=all_cols, index=0)
+                y_axis = st.selectbox(
+                    "Chọn chỉ số để vẽ biểu đồ (Trục Y)",
+                    options=metric_cols,
+                    key="detail_chart_y_selectbox"
+                )
                 
-                with col_v2:
-                    default_y_idx = 0
-                    if len(numeric_cols) > 1 and x_axis in numeric_cols:
-                        non_x_numeric = [c for c in numeric_cols if c != x_axis]
-                        if non_x_numeric:
-                            default_y_idx = numeric_cols.index(non_x_numeric[0])
+                # Ensure correct ordering: sort by task_id then round_id
+                sort_cols = []
+                if 'task_id' in plot_df.columns:
+                    plot_df['task_id_num'] = pd.to_numeric(plot_df['task_id'], errors='coerce')
+                    sort_cols.append('task_id_num')
+                if 'round_id' in plot_df.columns:
+                    plot_df['round_id_num'] = pd.to_numeric(plot_df['round_id'], errors='coerce')
+                    sort_cols.append('round_id_num')
                     
-                    y_axis = st.selectbox("Chọn cột vẽ biểu đồ (Trục Y - Số)", options=numeric_cols, index=default_y_idx)
+                if sort_cols:
+                    plot_df = plot_df.sort_values(by=sort_cols)
                 
-                chart_type = st.radio("Loại biểu đồ", options=["Biểu đồ đường (Line)", "Biểu đồ cột (Bar)", "Biểu đồ vùng (Area)"], horizontal=True)
+                # Helper function for robust label formatting
+                def format_row_label(row):
+                    t_part = ""
+                    r_part = ""
+                    if 'task_id' in row and pd.notna(row['task_id']):
+                        try:
+                            t_part = f"Task {int(float(row['task_id']))}"
+                        except Exception:
+                            t_part = f"Task {row['task_id']}"
+                    if 'round_id' in row and pd.notna(row['round_id']):
+                        try:
+                            r_part = f"Round {int(float(row['round_id']))}"
+                        except Exception:
+                            r_part = f"Round {row['round_id']}"
+                    parts = [p for p in [t_part, r_part] if p]
+                    return " ".join(parts) if parts else "Row " + str(row.name)
                 
-                # Plot the chart
-                chart_data = edited_df[[x_axis, y_axis]].dropna()
+                # Create sequential X-axis labels
+                plot_df['Tiến trình (X-axis)'] = plot_df.apply(format_row_label, axis=1)
+                
+                chart_data = plot_df[['Tiến trình (X-axis)', y_axis]].dropna()
                 
                 if not chart_data.empty:
-                    chart_data = chart_data.sort_values(by=x_axis)
-                    if "Line" in chart_type:
-                        st.line_chart(chart_data.set_index(x_axis))
-                    elif "Bar" in chart_type:
-                        st.bar_chart(chart_data.set_index(x_axis))
-                    else:
-                        st.area_chart(chart_data.set_index(x_axis))
+                    st.caption(f"Biểu đồ đường (Line) thể hiện tiến trình huấn luyện của chỉ số `{y_axis}` theo thời gian")
+                    st.line_chart(chart_data.set_index('Tiến trình (X-axis)'))
                 else:
                     st.warning("Không có dữ liệu hợp lệ để vẽ biểu đồ.")
             else:
