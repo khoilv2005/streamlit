@@ -123,7 +123,7 @@ def clean_numeric_value(val):
     if isinstance(val, (int, float)):
         val_num = float(val)
         val_str = str(val).strip()
-        if val_num > 10.0 and not val_str.startswith('0'):
+        if val_num > 50.0 and not val_str.startswith('0'):
             cleaned = val_str.replace('.', '')
             return float(cleaned[0] + '.' + cleaned[1:])
         return val
@@ -132,21 +132,28 @@ def clean_numeric_value(val):
     if not val_str:
         return None
         
-    # Check if it starts with 0
-    is_zero_start = val_str.startswith('0')
+    # Translate commas to dots (European decimal representation support)
+    val_str = val_str.replace(',', '.')
     
-    cleaned = val_str.replace('.', '')
+    # Try to parse directly first
     try:
-        val_num = float(cleaned)
-        if val_num > 10.0 and not is_zero_start:
+        val_num = float(val_str)
+        if val_num > 50.0 and not val_str.startswith('0'):
+            cleaned = val_str.replace('.', '')
             return float(cleaned[0] + '.' + cleaned[1:])
-        # Use first-dot-only if there are multiple dots but not > 10.0
-        if val_str.count('.') > 1:
-            parts = val_str.split('.')
-            return float(parts[0] + '.' + ''.join(parts[1:]))
-        return float(val_str)
+        return val_num
     except ValueError:
-        return val
+        # Likely has multiple dots, e.g. "3.673.841"
+        is_zero_start = val_str.startswith('0')
+        cleaned = val_str.replace('.', '')
+        try:
+            val_num = float(cleaned)
+            if not is_zero_start:
+                return float(cleaned[0] + '.' + cleaned[1:])
+            else:
+                return float('0.' + cleaned[1:])
+        except ValueError:
+            return val
 
 def filter_allowed_columns(df):
     # Rename columns to their canonical names if they exist case-insensitively
