@@ -545,27 +545,79 @@ with tab_summary:
                     
             if len(numeric_cols) > 0:
                 st.markdown("---")
-                st.markdown("#### 📊 So Sánh Các File Tại Round 19")
-                y_axis_summary = st.selectbox(
-                    "Chọn cột chỉ số để so sánh giữa các file",
-                    options=numeric_cols,
-                    key="y_axis_summary_selectbox"
-                )
+                st.markdown("#### 📊 So Sánh Hiệu Năng Thực Nghiệm (Round 19)")
+                
+                col_c1, col_c2 = st.columns(2)
+                with col_c1:
+                    y_axis_summary = st.selectbox(
+                        "Chọn chỉ số để đối sánh",
+                        options=numeric_cols,
+                        key="y_axis_summary_selectbox"
+                    )
+                with col_c2:
+                    comp_mode = st.radio(
+                        "Chế độ đối sánh",
+                        options=["So sánh các File theo Task", "So sánh các Task theo File"],
+                        horizontal=True,
+                        key="comparison_mode_radio"
+                    )
                 
                 chart_df = combined_summary_df.copy()
                 
                 # Check for task_id column
                 task_col = 'task_id' if 'task_id' in chart_df.columns else None
                 
-                if task_col is not None:
-                    chart_df['Label'] = chart_df['File Nguồn'] + " (Task " + chart_df[task_col].astype(str) + ")"
-                else:
-                    chart_df['Label'] = chart_df['File Nguồn']
+                if comp_mode == "So sánh các File theo Task":
+                    if task_col is not None and not chart_df[task_col].dropna().empty:
+                        # Get unique tasks
+                        unique_tasks = sorted(chart_df[task_col].dropna().unique().tolist())
+                        # Convert to int/string format for display
+                        task_options = [f"Task {int(t)}" for t in unique_tasks]
+                        selected_task_str = st.selectbox("Chọn Task để đối sánh", options=task_options, key="select_task_comp")
+                        selected_task_val = unique_tasks[task_options.index(selected_task_str)]
+                        
+                        # Filter data for this task
+                        filtered_chart_df = chart_df[chart_df[task_col] == selected_task_val]
+                        
+                        if not filtered_chart_df.empty:
+                            plot_data = filtered_chart_df[['File Nguồn', y_axis_summary]].dropna()
+                            if not plot_data.empty:
+                                st.caption(f"Biểu đồ so sánh {y_axis_summary} giữa các File tại {selected_task_str}")
+                                st.bar_chart(plot_data.set_index('File Nguồn'))
+                            else:
+                                st.warning("Không có dữ liệu hợp lệ để vẽ biểu đồ.")
+                        else:
+                            st.warning("Không có dữ liệu cho Task này.")
+                    else:
+                        st.info("Không tìm thấy thông tin cột 'task_id' để so sánh theo Task.")
                 
-                comparison_data = chart_df[['Label', y_axis_summary]].dropna()
-                if not comparison_data.empty:
-                    st.bar_chart(comparison_data.set_index('Label'))
-                else:
-                    st.warning("Không có dữ liệu hợp lệ để so sánh.")
+                else: # So sánh các Task theo File
+                    unique_files = sorted(chart_df['File Nguồn'].dropna().unique().tolist())
+                    if unique_files:
+                        selected_file_comp = st.selectbox("Chọn File để đối sánh", options=unique_files, key="select_file_comp")
+                        
+                        # Filter data for this file
+                        filtered_chart_df = chart_df[chart_df['File Nguồn'] == selected_file_comp]
+                        
+                        if not filtered_chart_df.empty:
+                            if task_col is not None and not filtered_chart_df[task_col].dropna().empty:
+                                filtered_chart_df['Task Label'] = "Task " + filtered_chart_df[task_col].astype(int).astype(str)
+                                plot_data = filtered_chart_df[['Task Label', y_axis_summary]].dropna()
+                                if not plot_data.empty:
+                                    st.caption(f"Biểu đồ so sánh {y_axis_summary} giữa các Task trong file `{selected_file_comp}`")
+                                    st.bar_chart(plot_data.set_index('Task Label'))
+                                else:
+                                    st.warning("Không có dữ liệu hợp lệ để vẽ biểu đồ.")
+                            else:
+                                # No task column, just plot values
+                                plot_data = filtered_chart_df[[y_axis_summary]].dropna()
+                                if not plot_data.empty:
+                                    st.bar_chart(plot_data)
+                                else:
+                                    st.warning("Không có dữ liệu hợp lệ để vẽ biểu đồ.")
+                        else:
+                            st.warning("Không có dữ liệu cho File này.")
+                    else:
+                        st.info("Không có tệp dữ liệu nào để đối sánh.")
         else:
             st.warning("Không tìm thấy dữ liệu có `round` là 19 trong bất kỳ file nào hiện tại.")
