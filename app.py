@@ -13,8 +13,8 @@ if not os.path.exists(DATA_DIR):
     os.makedirs(DATA_DIR)
 
 st.set_page_config(
-    page_title="Table Studio",
-    page_icon="🔮",
+    page_title="Thống kê thực nghiệm DeFL_IDS",
+    page_icon="🛡️",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -29,58 +29,80 @@ st.markdown("""
             font-family: 'Plus Jakarta Sans', sans-serif;
         }
         .main-header {
-            background: linear-gradient(120deg, #8E2DE2, #4A00E0);
+            background: linear-gradient(135deg, #00F2FE 0%, #4FACFE 50%, #7F00FF 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             font-weight: 800;
-            font-size: 2.5rem;
-            margin-bottom: 0.5rem;
+            font-size: 2.6rem;
+            margin-bottom: 0.3rem;
+            letter-spacing: -0.02em;
         }
         .sub-header {
-            color: #6C757D;
+            color: #8A99AD;
             font-size: 1.1rem;
             margin-bottom: 2rem;
+            font-weight: 400;
         }
         .card {
-            background-color: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
+            background-color: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(127, 0, 255, 0.15);
+            border-radius: 16px;
             padding: 1.5rem;
             margin-bottom: 1rem;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.04);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(127, 0, 255, 0.1);
+            border-color: rgba(0, 242, 254, 0.4);
         }
         .metric-title {
             font-size: 0.85rem;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: #888;
-            margin-bottom: 0.2rem;
+            letter-spacing: 0.07em;
+            color: #8892B0;
+            margin-bottom: 0.4rem;
+            font-weight: 600;
         }
         .metric-num {
-            font-size: 1.8rem;
+            font-size: 2rem;
             font-weight: 700;
-            color: #4A00E0;
+            background: linear-gradient(135deg, #00F2FE 0%, #4FACFE 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
         /* Custom side header */
         .sidebar-header {
             font-weight: 700;
-            font-size: 1.2rem;
-            margin-bottom: 1rem;
-            color: #2D3748;
+            font-size: 1.25rem;
+            margin-bottom: 1.2rem;
+            color: #1A202C;
+            letter-spacing: -0.01em;
         }
         div[data-testid="stSidebar"] {
-            background-color: #F7FAFC;
+            background-color: #F8FAFC;
+            border-right: 1px solid rgba(0, 0, 0, 0.05);
         }
         /* Dark mode fallback adjustment */
         @media (prefers-color-scheme: dark) {
             .sidebar-header {
-                color: #F7FAFC;
+                color: #F8FAFC;
             }
             div[data-testid="stSidebar"] {
-                background-color: #1A202C;
+                background-color: #0F172A;
+                border-right: 1px solid rgba(255, 255, 255, 0.05);
             }
             .metric-num {
-                color: #A78BFA;
+                background: linear-gradient(135deg, #00F2FE 0%, #A78BFA 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+            }
+            .card {
+                background-color: rgba(15, 23, 42, 0.6);
+                border: 1px solid rgba(167, 139, 250, 0.15);
             }
         }
     </style>
@@ -227,21 +249,21 @@ with st.sidebar:
         selected_file = None
 
 # Main Panel
-st.markdown('<div class="main-header">📊 TABLE STUDIO</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-header">Nhập, chỉnh sửa, hiển thị và xuất bảng dữ liệu từ các file JSON & CSV trực quan.</div>', unsafe_allow_html=True)
+st.markdown('<div class="main-header">🛡️ THỐNG KÊ THỰC NGHIỆM DeFL_IDS</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-header">Hệ thống phân tích, hiển thị và so sánh kết quả thực nghiệm học máy liên kết phát hiện xâm nhập (DeFL_IDS).</div>', unsafe_allow_html=True)
 
 # Setup Tabs
-tab_detail, tab_summary = st.tabs(["📄 Chi Tiết Từng File", "📈 Thống Kê Tổng Hợp (Round 19)"])
+tab_detail, tab_summary = st.tabs(["📄 Chi Tiết Từng File", "📈 Đối Sánh Hiệu Năng (Round 19)"])
 
 with tab_detail:
     if not selected_file:
         # Beautiful welcome/empty state
         st.markdown("""
-            <div style="text-align: center; padding: 4rem 2rem; border: 2px dashed rgba(100, 100, 100, 0.2); border-radius: 20px;">
-                <span style="font-size: 5rem;">🔮</span>
-                <h3 style="margin-top: 1.5rem; font-weight: 600;">Sẵn sàng khởi tạo bảng</h3>
-                <p style="color: #6C757D; max-width: 500px; margin: 0.5rem auto 1.5rem auto;">
-                    Hãy tải lên một file JSON hoặc CSV bằng khung kéo thả ở thanh bên (Sidebar) để bắt đầu phân tích dữ liệu, chỉnh sửa bảng và vẽ biểu đồ.
+            <div style="text-align: center; padding: 4rem 2rem; border: 2px dashed rgba(127, 0, 255, 0.2); border-radius: 20px; background-color: rgba(255, 255, 255, 0.01);">
+                <span style="font-size: 5rem;">🛡️</span>
+                <h3 style="margin-top: 1.5rem; font-weight: 600; background: linear-gradient(135deg, #00F2FE 0%, #7F00FF 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Hệ Thống Thống Kê Thực Nghiệm DeFL_IDS</h3>
+                <p style="color: #8A99AD; max-width: 600px; margin: 0.5rem auto 1.5rem auto;">
+                    Chào mừng bạn đến với bảng điều khiển phân tích DeFL_IDS. Vui lòng tải lên tệp kết quả thực nghiệm (định dạng JSON hoặc CSV) ở thanh bên để bắt đầu phân tích chi tiết và đối sánh dữ liệu.
                 </p>
             </div>
         """, unsafe_allow_html=True)
@@ -377,8 +399,8 @@ with tab_detail:
             st.error(f"Lỗi khi hiển thị file: {str(e)}")
 
 with tab_summary:
-    st.markdown("### 📈 Thống Kê Tổng Hợp (Dữ liệu tại Round 19)")
-    st.write("Bảng này tổng hợp dữ liệu từ tất cả các file hiện có tại thư mục lưu trữ, chỉ lọc các dòng có `round` là 19.")
+    st.markdown("### 📈 Đối Sánh Hiệu Năng Thực Nghiệm (Round 19)")
+    st.write("Bảng so sánh kết quả huấn luyện mô hình DeFL_IDS từ tất cả các tệp thực nghiệm đã lưu tại local round thứ 19.")
     
     all_files = list_data_files()
     if not all_files:
