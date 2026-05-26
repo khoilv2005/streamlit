@@ -118,8 +118,44 @@ def list_data_files():
     return files
 
 def filter_allowed_columns(df):
+    # Rename columns to their canonical names if they exist case-insensitively
+    # We consolidate 'task' -> 'task_id', and 'round' -> 'round_id'
+    
+    # 1. Handle task / task_id case-insensitively
+    task_col = None
+    task_id_col = None
+    for col in df.columns:
+        if str(col).lower() == 'task':
+            task_col = col
+        elif str(col).lower() == 'task_id':
+            task_id_col = col
+            
+    if task_col is not None:
+        if task_id_col is None:
+            df = df.rename(columns={task_col: 'task_id'})
+        else:
+            # both exist, drop task
+            df = df.drop(columns=[task_col])
+
+    # 2. Handle round / round_id case-insensitively
+    round_col = None
+    round_id_col = None
+    for col in df.columns:
+        if str(col).lower() == 'round':
+            round_col = col
+        elif str(col).lower() == 'round_id':
+            round_id_col = col
+            
+    if round_col is not None:
+        if round_id_col is None:
+            df = df.rename(columns={round_col: 'round_id'})
+        else:
+            # both exist, drop round
+            df = df.drop(columns=[round_col])
+
+    # Now filter to allowed columns (canonical only)
     ALLOWED_COLS = [
-        'task', 'task_id', 'round', 'round_id', 'train_loss', 'test_loss', 'accuracy', 
+        'task_id', 'round_id', 'train_loss', 'test_loss', 'accuracy', 
         'precision_macro', 'recall_macro', 'recall_marco', 
         'f1_macro', 'f1_marco', 'f1_weighted', 'f1_weight'
     ]
@@ -413,14 +449,9 @@ with tab_summary:
                 if temp_df.empty:
                     continue
                 
-                # Check if 'round'/'round_id' and 'task'/'task_id' columns exist (case-insensitive check)
-                round_col = None
-                task_col = None
-                for col in temp_df.columns:
-                    if str(col).lower() in ['round', 'round_id']:
-                        round_col = col
-                    elif str(col).lower() in ['task', 'task_id']:
-                        task_col = col
+                # Check if 'round_id' and 'task_id' columns exist
+                round_col = 'round_id' if 'round_id' in temp_df.columns else None
+                task_col = 'task_id' if 'task_id' in temp_df.columns else None
                 
                 if round_col is not None:
                     temp_df[round_col] = pd.to_numeric(temp_df[round_col], errors='coerce')
@@ -460,10 +491,9 @@ with tab_summary:
         if summary_rows:
             combined_summary_df = pd.concat(summary_rows, ignore_index=True)
             
-            # Remove 'round'/'round_id' column from summary table
-            round_cols = [col for col in combined_summary_df.columns if str(col).lower() in ['round', 'round_id']]
-            if round_cols:
-                combined_summary_df = combined_summary_df.drop(columns=round_cols)
+            # Remove 'round_id' column from summary table
+            if 'round_id' in combined_summary_df.columns:
+                combined_summary_df = combined_summary_df.drop(columns=['round_id'])
             
             # Display stats cards
             col_stat1, col_stat2 = st.columns(2)
@@ -508,9 +538,9 @@ with tab_summary:
                 
             # Visualization for round 19 across files
             numeric_cols = combined_summary_df.select_dtypes(include=['number']).columns.tolist()
-            # Remove keys like round/round_id/task/task_id from choices
+            # Remove keys like round_id/task_id from choices
             for col in list(numeric_cols):
-                if str(col).lower() in ['round', 'round_id', 'task', 'task_id']:
+                if str(col).lower() in ['round_id', 'task_id']:
                     numeric_cols.remove(col)
                     
             if len(numeric_cols) > 0:
@@ -524,12 +554,8 @@ with tab_summary:
                 
                 chart_df = combined_summary_df.copy()
                 
-                # Check for task / task_id column
-                task_col = None
-                for col in chart_df.columns:
-                    if str(col).lower() in ['task', 'task_id']:
-                        task_col = col
-                        break
+                # Check for task_id column
+                task_col = 'task_id' if 'task_id' in chart_df.columns else None
                 
                 if task_col is not None:
                     chart_df['Label'] = chart_df['File Nguồn'] + " (Task " + chart_df[task_col].astype(str) + ")"
