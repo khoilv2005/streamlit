@@ -555,11 +555,11 @@ with tab_summary:
                         key="y_axis_summary_selectbox"
                     )
                 with col_c2:
-                    comp_mode = st.radio(
-                        "Chế độ đối sánh",
-                        options=["So sánh các File theo Task", "So sánh các Task theo File"],
+                    group_by = st.radio(
+                        "Trục hoành biểu đồ (X-axis)",
+                        options=["Hiển thị theo Task", "Hiển thị theo File"],
                         horizontal=True,
-                        key="comparison_mode_radio"
+                        key="group_by_axis_radio"
                     )
                 
                 chart_df = combined_summary_df.copy()
@@ -567,57 +567,34 @@ with tab_summary:
                 # Check for task_id column
                 task_col = 'task_id' if 'task_id' in chart_df.columns else None
                 
-                if comp_mode == "So sánh các File theo Task":
-                    if task_col is not None and not chart_df[task_col].dropna().empty:
-                        # Get unique tasks
-                        unique_tasks = sorted(chart_df[task_col].dropna().unique().tolist())
-                        # Convert to int/string format for display
-                        task_options = [f"Task {int(t)}" for t in unique_tasks]
-                        selected_task_str = st.selectbox("Chọn Task để đối sánh", options=task_options, key="select_task_comp")
-                        selected_task_val = unique_tasks[task_options.index(selected_task_str)]
-                        
-                        # Filter data for this task
-                        filtered_chart_df = chart_df[chart_df[task_col] == selected_task_val]
-                        
-                        if not filtered_chart_df.empty:
-                            plot_data = filtered_chart_df[['File Nguồn', y_axis_summary]].dropna()
-                            if not plot_data.empty:
-                                st.caption(f"Biểu đồ so sánh {y_axis_summary} giữa các File tại {selected_task_str}")
-                                st.bar_chart(plot_data.set_index('File Nguồn'))
-                            else:
-                                st.warning("Không có dữ liệu hợp lệ để vẽ biểu đồ.")
-                        else:
-                            st.warning("Không có dữ liệu cho Task này.")
+                if task_col is not None and not chart_df[task_col].dropna().empty:
+                    chart_df['Task Label'] = "Task " + chart_df[task_col].astype(int).astype(str)
+                    
+                    if group_by == "Hiển thị theo Task":
+                        st.caption(f"Biểu đồ so sánh {y_axis_summary} giữa các File (màu sắc) theo từng Task (trục hoành)")
+                        st.bar_chart(
+                            chart_df,
+                            x="Task Label",
+                            y=y_axis_summary,
+                            color="File Nguồn",
+                            stack=False
+                        )
                     else:
-                        st.info("Không tìm thấy thông tin cột 'task_id' để so sánh theo Task.")
-                
-                else: # So sánh các Task theo File
-                    unique_files = sorted(chart_df['File Nguồn'].dropna().unique().tolist())
-                    if unique_files:
-                        selected_file_comp = st.selectbox("Chọn File để đối sánh", options=unique_files, key="select_file_comp")
-                        
-                        # Filter data for this file
-                        filtered_chart_df = chart_df[chart_df['File Nguồn'] == selected_file_comp]
-                        
-                        if not filtered_chart_df.empty:
-                            if task_col is not None and not filtered_chart_df[task_col].dropna().empty:
-                                filtered_chart_df['Task Label'] = "Task " + filtered_chart_df[task_col].astype(int).astype(str)
-                                plot_data = filtered_chart_df[['Task Label', y_axis_summary]].dropna()
-                                if not plot_data.empty:
-                                    st.caption(f"Biểu đồ so sánh {y_axis_summary} giữa các Task trong file `{selected_file_comp}`")
-                                    st.bar_chart(plot_data.set_index('Task Label'))
-                                else:
-                                    st.warning("Không có dữ liệu hợp lệ để vẽ biểu đồ.")
-                            else:
-                                # No task column, just plot values
-                                plot_data = filtered_chart_df[[y_axis_summary]].dropna()
-                                if not plot_data.empty:
-                                    st.bar_chart(plot_data)
-                                else:
-                                    st.warning("Không có dữ liệu hợp lệ để vẽ biểu đồ.")
-                        else:
-                            st.warning("Không có dữ liệu cho File này.")
+                        st.caption(f"Biểu đồ so sánh {y_axis_summary} giữa các Task (màu sắc) theo từng File (trục hoành)")
+                        st.bar_chart(
+                            chart_df,
+                            x="File Nguồn",
+                            y=y_axis_summary,
+                            color="Task Label",
+                            stack=False
+                        )
+                else:
+                    # No task column, just plot files comparison
+                    plot_data = chart_df[['File Nguồn', y_axis_summary]].dropna()
+                    if not plot_data.empty:
+                        st.caption(f"Biểu đồ so sánh {y_axis_summary} giữa các File")
+                        st.bar_chart(plot_data.set_index('File Nguồn'))
                     else:
-                        st.info("Không có tệp dữ liệu nào để đối sánh.")
+                        st.warning("Không có dữ liệu hợp lệ để vẽ biểu đồ.")
         else:
             st.warning("Không tìm thấy dữ liệu có `round` là 19 trong bất kỳ file nào hiện tại.")
