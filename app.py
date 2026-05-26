@@ -121,15 +121,29 @@ def clean_numeric_value(val):
     if pd.isna(val):
         return val
     if isinstance(val, (int, float)):
+        val_num = float(val)
+        val_str = str(val).strip()
+        if val_num > 10.0 and not val_str.startswith('0'):
+            cleaned = val_str.replace('.', '')
+            return float(cleaned[0] + '.' + cleaned[1:])
         return val
+        
     val_str = str(val).strip()
     if not val_str:
         return None
-    # If there are multiple dots, e.g. "3.673.841", keep only the first one
-    if val_str.count('.') > 1:
-        parts = val_str.split('.')
-        val_str = parts[0] + '.' + ''.join(parts[1:])
+        
+    # Check if it starts with 0
+    is_zero_start = val_str.startswith('0')
+    
+    cleaned = val_str.replace('.', '')
     try:
+        val_num = float(cleaned)
+        if val_num > 10.0 and not is_zero_start:
+            return float(cleaned[0] + '.' + cleaned[1:])
+        # Use first-dot-only if there are multiple dots but not > 10.0
+        if val_str.count('.') > 1:
+            parts = val_str.split('.')
+            return float(parts[0] + '.' + ''.join(parts[1:]))
         return float(val_str)
     except ValueError:
         return val
